@@ -1,0 +1,31 @@
+{
+  "name": "wavenergy",
+  "version": "0.0.1",
+  "description": "wave energy mapping app",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tsamsonov/wavenergy.git"
+  },
+  "keywords": [
+    "wave",
+    "energy;",
+    "sea;",
+    "maps"
+  ],
+  "author": "Timofey Samsonov & Stanislav Myslenkov",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/tsamsonov/wavenergy/issues"
+  },
+  "homepage": "https://github.com/tsamsonov/wavenergy#readme",
+  "dependencies": {
+    "ol": "^5.3.3"
+  },
+  "devDependencies": {
+    "parcel-bundler": "^1.12.3"
+  }
+}
