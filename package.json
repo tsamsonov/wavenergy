@@ -4,7 +4,9 @@
   "description": "wave energy mapping app",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "parcel index.html",
+    "build": "parcel build --public-url . index.html"
   },
   "repository": {
     "type": "git",
@@ -23,7 +25,8 @@
   },
   "homepage": "https://github.com/tsamsonov/wavenergy#readme",
   "dependencies": {
-    "ol": "^5.3.3"
+    "ol": "^5.3.3",
+    "string-format": "^2.0.0"
   },
   "devDependencies": {
     "parcel-bundler": "^1.12.3"
