@@ -25,7 +25,10 @@
   },
   "homepage": "https://github.com/tsamsonov/wavenergy#readme",
   "dependencies": {
+    "color-convert": "^2.0.0",
+    "colorbrewer": "^1.3.0",
     "ol": "^5.3.3",
+    "proj4": "^2.5.0",
     "string-format": "^2.0.0"
   },
   "devDependencies": {
