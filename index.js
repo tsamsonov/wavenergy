@@ -4,14 +4,16 @@ import {Tile as TileLayer, Vector as VectorLayer, VectorTile as VectorTileLayer,
 import VectorSource from 'ol/source/Vector.js';
 import VectorTileSource from 'ol/source/VectorTile.js';
 import GeoJSON from 'ol/format/GeoJSON';
+import TileJSON from 'ol/source/TileJSON.js'
 import OSM from 'ol/source/OSM';
 import MVT from 'ol/format/MVT.js'
 import {Fill, Stroke, Icon, Style, Text, Circle} from 'ol/style';
 import TileGrid from 'ol/tilegrid/TileGrid';
 import proj4 from 'proj4';
-import {register} from 'ol/proj/proj4';
+import register from 'ol/proj/proj4';
 import {get as getProjection} from 'ol/proj';
-import {transform} from 'ol/proj.js';
+import {transform, Projection} from 'ol/proj.js';
+import WMTS from 'ol/tilegrid/WMTS.js'
 
 var tools = require('./maps_legend_builder/maps_legend_builder.js');
 
@@ -31,18 +33,37 @@ function round(value, decimals) {
 //   '+x_0=600000 +y_0=200000 +ellps=bessel ' +
 //   '+towgs84=660.077,13.551,369.344,2.484,1.783,2.939,5.66 +units=m +no_defs');
 // register(proj4);
-// const prj = getProjection('EPSG:21781');
+// const prj = getProjection('EPSG:4326');
 
 var host = "localhost:8080/geoserver";
 var host2 = "autolab.geogr.msu.ru:8080/geoserver";
-var epsg = 900913
+// var epsg = 900913
 
 var seas = ['baltic', 'barentsz', 'black', 'kaspiy']
 var vars = ['esr', 'hsr', 'psr', 'lsr', 'hs', 'h3p']
 
+var prj = new Projection({
+  code: 'EPSG:4326',
+  units: 'degrees',
+  axisOrientation: 'neu'
+});
+
+var gridNames = ['EPSG:4326:0', 'EPSG:4326:1', 'EPSG:4326:2', 'EPSG:4326:3', 'EPSG:4326:4', 'EPSG:4326:5', 'EPSG:4326:6', 'EPSG:4326:7', 'EPSG:4326:8', 'EPSG:4326:9', 'EPSG:4326:10', 'EPSG:4326:11', 'EPSG:4326:12', 'EPSG:4326:13', 'EPSG:4326:14', 'EPSG:4326:15', 'EPSG:4326:16', 'EPSG:4326:17', 'EPSG:4326:18', 'EPSG:4326:19', 'EPSG:4326:20', 'EPSG:4326:21'];
+
+var resolutions = [0.703125, 0.3515625, 0.17578125, 0.087890625, 0.0439453125, 0.02197265625, 0.010986328125, 0.0054931640625, 0.00274658203125, 0.001373291015625, 6.866455078125E-4, 3.4332275390625E-4, 1.71661376953125E-4, 8.58306884765625E-5, 4.291534423828125E-5, 2.1457672119140625E-5, 1.0728836059570312E-5, 5.364418029785156E-6, 2.682209014892578E-6, 1.341104507446289E-6, 6.705522537231445E-7, 3.3527612686157227E-7];
+
+
 function vt_source(host, name, epsg = 900913){
   return new VectorTileSource({
     format: new MVT(),
+    // projection: prj,
+    // tileGrid: new WMTS({
+    //   tileSize: [256,256],
+    //   origin: [-180.0, 90.0],
+    //   resolutions: resolutions,
+    //   matrixIds: gridNames
+    // }),
+    // wrapX: true,
     url: `http://${host}/gwc/service/tms/1.0.0/${name}@EPSG%3A${epsg}@pbf/{z}/{x}/{-y}.pbf`
   })
 }
@@ -72,13 +93,7 @@ function get_color(palette, value, min, max, step, nan_color = '#FFFFFF') {
 
     bin_new = bin_new < 0 ? 0 : bin_new;
 
-    // console.log([nbins_new, bin_new])
     var hsl1 = convert.hex.rgb(palette[nbins_new][bin_new]);
-
-    // if (bin % k == 0) {
-    //   return '#' + convert.rgb.hex(hsl1);
-    // } else {
-
     var hsl2 = convert.hex.rgb(palette[nbins_new][bin_new+1]);
 
     var w = 1 - (bin % k) / k // weighting coefficient
@@ -90,7 +105,6 @@ function get_color(palette, value, min, max, step, nan_color = '#FFFFFF') {
     ];
 
     return '#' + convert.rgb.hex(hsl);
-    // }
 
   }
 }
@@ -102,11 +116,10 @@ function get_colors(palette, min, max, step) {
     arr.push(get_color(palette, val, min, max, step))
     val += step;
   }
-  // console.log(arr);
   return arr;
 }
 
-var get_values = function(from, to, by){
+function get_values(from, to, by){
   var arr = [];
   var val = from;
   while (to - val >= - 0.5 * by) {
@@ -126,7 +139,7 @@ function band_style(feature, resolution, palette,
    })
 }
 
-var cont_style = function(feature, resolution) {
+function cont_style(feature, resolution) {
  var idx = feature.get('index');
 
  return new Style({
@@ -137,7 +150,7 @@ var cont_style = function(feature, resolution) {
  });
 }
 
-var cont_label_style = function(feature, resolution) {
+function cont_label_style(feature, resolution) {
  var idx = feature.get('index');
  var z = round(feature.get('Z'),1);
  var len = feature.get('Shape_Length');
@@ -395,10 +408,6 @@ var city_lyr = new VectorLayer({
           fill: new Fill({
             color: '#000'
           }),
-          // stroke: new ol.style.Stroke({
-          //   color: '#fff',
-          //   width: 2
-          // }),
           offsetY: -10
         })
       })
@@ -407,8 +416,7 @@ var city_lyr = new VectorLayer({
   declutter: true
 });
 
-var center = transform([90, 60], 'EPSG:4326', 'EPSG:3857');
-
+var center = transform([40, 60], 'EPSG:4326', 'EPSG:3857');
 
 // var key = 'pk.eyJ1IjoiaWFtc3RlIiwiYSI6ImNqYm1ibWJiZjF1azUyd3Rncnk0Mjd3bTkifQ.9TWQZoeHu-bIJNRFT6TW4A'
 //
@@ -442,8 +450,9 @@ const map = new Map({
   ],
   view: new View({
     center: center,
+    // center: [40, 60],
     zoom: 4,
-    // projection: 'EPSG:4326'
+    // projection: prj
   })
 });
 
@@ -453,7 +462,7 @@ var mySelect = document.getElementById('varList');
 
 mySelect.value = 'hs'
 
-var insert_legend = function(palette, from, to, by, id = 'td00') {
+function insert_legend(palette, from, to, by, id = 'td00') {
   document.getElementById(id).innerHTML = "";
   tools.layeredColoring(0, 0,
               get_colors(palette, from, to, by),
@@ -499,8 +508,6 @@ mySelect.onchange = function() {
 
     map.getLayers().insertAt(1, cur_var);
 }
-
-// console.log(get_colors(colorbrewer.YlGnBu, 0, 1.3, 0.1))
 
 tools.tablesInit(1, [1], "legend");
 tools.layeredColoring(0, 0,

@@ -63159,7 +63159,59 @@ function writePolygonGeometry(geometry, opt_options) {
 
 var _default = GeoJSON;
 exports.default = _default;
-},{"../asserts.js":"node_modules/ol/asserts.js","../Feature.js":"node_modules/ol/Feature.js","./Feature.js":"node_modules/ol/format/Feature.js","./JSONFeature.js":"node_modules/ol/format/JSONFeature.js","../geom/GeometryCollection.js":"node_modules/ol/geom/GeometryCollection.js","../geom/LineString.js":"node_modules/ol/geom/LineString.js","../geom/MultiLineString.js":"node_modules/ol/geom/MultiLineString.js","../geom/MultiPoint.js":"node_modules/ol/geom/MultiPoint.js","../geom/MultiPolygon.js":"node_modules/ol/geom/MultiPolygon.js","../geom/Point.js":"node_modules/ol/geom/Point.js","../geom/Polygon.js":"node_modules/ol/geom/Polygon.js","../obj.js":"node_modules/ol/obj.js","../proj.js":"node_modules/ol/proj.js","../geom/GeometryType.js":"node_modules/ol/geom/GeometryType.js"}],"node_modules/ol/reproj.js":[function(require,module,exports) {
+},{"../asserts.js":"node_modules/ol/asserts.js","../Feature.js":"node_modules/ol/Feature.js","./Feature.js":"node_modules/ol/format/Feature.js","./JSONFeature.js":"node_modules/ol/format/JSONFeature.js","../geom/GeometryCollection.js":"node_modules/ol/geom/GeometryCollection.js","../geom/LineString.js":"node_modules/ol/geom/LineString.js","../geom/MultiLineString.js":"node_modules/ol/geom/MultiLineString.js","../geom/MultiPoint.js":"node_modules/ol/geom/MultiPoint.js","../geom/MultiPolygon.js":"node_modules/ol/geom/MultiPolygon.js","../geom/Point.js":"node_modules/ol/geom/Point.js","../geom/Polygon.js":"node_modules/ol/geom/Polygon.js","../obj.js":"node_modules/ol/obj.js","../proj.js":"node_modules/ol/proj.js","../geom/GeometryType.js":"node_modules/ol/geom/GeometryType.js"}],"node_modules/ol/net.js":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.jsonp = jsonp;
+
+var _util = require("./util.js");
+
+/**
+ * @module ol/net
+ */
+
+/**
+ * Simple JSONP helper. Supports error callbacks and a custom callback param.
+ * The error callback will be called when no JSONP is executed after 10 seconds.
+ *
+ * @param {string} url Request url. A 'callback' query parameter will be
+ *     appended.
+ * @param {Function} callback Callback on success.
+ * @param {function()=} opt_errback Callback on error.
+ * @param {string=} opt_callbackParam Custom query parameter for the JSONP
+ *     callback. Default is 'callback'.
+ */
+function jsonp(url, callback, opt_errback, opt_callbackParam) {
+  var script = document.createElement('script');
+  var key = 'olc_' + (0, _util.getUid)(callback);
+
+  function cleanup() {
+    delete window[key];
+    script.parentNode.removeChild(script);
+  }
+
+  script.async = true;
+  script.src = url + (url.indexOf('?') == -1 ? '?' : '&') + (opt_callbackParam || 'callback') + '=' + key;
+  var timer = setTimeout(function () {
+    cleanup();
+
+    if (opt_errback) {
+      opt_errback();
+    }
+  }, 10000);
+
+  window[key] = function (data) {
+    clearTimeout(timer);
+    cleanup();
+    callback(data);
+  };
+
+  document.getElementsByTagName('head')[0].appendChild(script);
+}
+},{"./util.js":"node_modules/ol/util.js"}],"node_modules/ol/reproj.js":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -64459,7 +64511,231 @@ function defaultTileLoadFunction(imageTile, src) {
 
 var _default = TileImage;
 exports.default = _default;
-},{"../reproj/common.js":"node_modules/ol/reproj/common.js","../util.js":"node_modules/ol/util.js","../ImageTile.js":"node_modules/ol/ImageTile.js","../TileCache.js":"node_modules/ol/TileCache.js","../TileState.js":"node_modules/ol/TileState.js","../events.js":"node_modules/ol/events.js","../events/EventType.js":"node_modules/ol/events/EventType.js","../proj.js":"node_modules/ol/proj.js","../reproj/Tile.js":"node_modules/ol/reproj/Tile.js","./UrlTile.js":"node_modules/ol/source/UrlTile.js","../tilecoord.js":"node_modules/ol/tilecoord.js","../tilegrid.js":"node_modules/ol/tilegrid.js"}],"node_modules/ol/source/XYZ.js":[function(require,module,exports) {
+},{"../reproj/common.js":"node_modules/ol/reproj/common.js","../util.js":"node_modules/ol/util.js","../ImageTile.js":"node_modules/ol/ImageTile.js","../TileCache.js":"node_modules/ol/TileCache.js","../TileState.js":"node_modules/ol/TileState.js","../events.js":"node_modules/ol/events.js","../events/EventType.js":"node_modules/ol/events/EventType.js","../proj.js":"node_modules/ol/proj.js","../reproj/Tile.js":"node_modules/ol/reproj/Tile.js","./UrlTile.js":"node_modules/ol/source/UrlTile.js","../tilecoord.js":"node_modules/ol/tilecoord.js","../tilegrid.js":"node_modules/ol/tilegrid.js"}],"node_modules/ol/source/TileJSON.js":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = void 0;
+
+var _tileurlfunction = require("../tileurlfunction.js");
+
+var _asserts = require("../asserts.js");
+
+var _extent = require("../extent.js");
+
+var _net = require("../net.js");
+
+var _proj = require("../proj.js");
+
+var _State = _interopRequireDefault(require("./State.js"));
+
+var _TileImage = _interopRequireDefault(require("./TileImage.js"));
+
+var _tilegrid = require("../tilegrid.js");
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+/**
+ * @module ol/source/TileJSON
+ */
+// FIXME check order of async callbacks
+
+/**
+ * See http://mapbox.com/developers/api/.
+ */
+
+/**
+ * @typedef {Object} Config
+ * @property {string} [name] The name.
+ * @property {string} [description] The description.
+ * @property {string} [version] The version.
+ * @property {string} [attribution] The attribution.
+ * @property {string} [template] The template.
+ * @property {string} [legend] The legend.
+ * @property {string} [scheme] The scheme.
+ * @property {Array<string>} tiles The tile URL templates.
+ * @property {Array<string>} [grids] Optional grids.
+ * @property {number} [minzoom] Minimum zoom level.
+ * @property {number} [maxzoom] Maximum zoom level.
+ * @property {Array<number>} [bounds] Optional bounds.
+ * @property {Array<number>} [center] Optional center.
+ */
+
+/**
+ * @typedef {Object} Options
+ * @property {import("./Source.js").AttributionLike} [attributions] Attributions.
+ * @property {number} [cacheSize=2048] Cache size.
+ * @property {null|string} [crossOrigin] The `crossOrigin` attribute for loaded images.  Note that
+ * you must provide a `crossOrigin` value if you are using the WebGL renderer or if you want to
+ * access pixel data with the Canvas renderer.  See
+ * https://developer.mozilla.org/en-US/docs/Web/HTML/CORS_enabled_image for more detail.
+ * @property {boolean} [jsonp=false] Use JSONP with callback to load the TileJSON.
+ * Useful when the server does not support CORS..
+ * @property {number} [reprojectionErrorThreshold=0.5] Maximum allowed reprojection error (in pixels).
+ * Higher values can increase reprojection performance, but decrease precision.
+ * @property {Config} [tileJSON] TileJSON configuration for this source.
+ * If not provided, `url` must be configured.
+ * @property {import("../Tile.js").LoadFunction} [tileLoadFunction] Optional function to load a tile given a URL. The default is
+ * ```js
+ * function(imageTile, src) {
+ *   imageTile.getImage().src = src;
+ * };
+ * ```
+ * @property {string} [url] URL to the TileJSON file. If not provided, `tileJSON` must be configured.
+ * @property {boolean} [wrapX=true] Whether to wrap the world horizontally.
+ * @property {number} [transition] Duration of the opacity transition for rendering.
+ * To disable the opacity transition, pass `transition: 0`.
+ */
+
+/**
+ * @classdesc
+ * Layer source for tile data in TileJSON format.
+ * @api
+ */
+var TileJSON =
+/*@__PURE__*/
+function (TileImage) {
+  function TileJSON(options) {
+    TileImage.call(this, {
+      attributions: options.attributions,
+      cacheSize: options.cacheSize,
+      crossOrigin: options.crossOrigin,
+      projection: (0, _proj.get)('EPSG:3857'),
+      reprojectionErrorThreshold: options.reprojectionErrorThreshold,
+      state: _State.default.LOADING,
+      tileLoadFunction: options.tileLoadFunction,
+      wrapX: options.wrapX !== undefined ? options.wrapX : true,
+      transition: options.transition
+    });
+    /**
+     * @type {Config}
+     * @private
+     */
+
+    this.tileJSON_ = null;
+
+    if (options.url) {
+      if (options.jsonp) {
+        (0, _net.jsonp)(options.url, this.handleTileJSONResponse.bind(this), this.handleTileJSONError.bind(this));
+      } else {
+        var client = new XMLHttpRequest();
+        client.addEventListener('load', this.onXHRLoad_.bind(this));
+        client.addEventListener('error', this.onXHRError_.bind(this));
+        client.open('GET', options.url);
+        client.send();
+      }
+    } else if (options.tileJSON) {
+      this.handleTileJSONResponse(options.tileJSON);
+    } else {
+      (0, _asserts.assert)(false, 51); // Either `url` or `tileJSON` options must be provided
+    }
+  }
+
+  if (TileImage) TileJSON.__proto__ = TileImage;
+  TileJSON.prototype = Object.create(TileImage && TileImage.prototype);
+  TileJSON.prototype.constructor = TileJSON;
+  /**
+   * @private
+   * @param {Event} event The load event.
+   */
+
+  TileJSON.prototype.onXHRLoad_ = function onXHRLoad_(event) {
+    var client =
+    /** @type {XMLHttpRequest} */
+    event.target; // status will be 0 for file:// urls
+
+    if (!client.status || client.status >= 200 && client.status < 300) {
+      var response;
+
+      try {
+        response =
+        /** @type {TileJSON} */
+        JSON.parse(client.responseText);
+      } catch (err) {
+        this.handleTileJSONError();
+        return;
+      }
+
+      this.handleTileJSONResponse(response);
+    } else {
+      this.handleTileJSONError();
+    }
+  };
+  /**
+   * @private
+   * @param {Event} event The error event.
+   */
+
+
+  TileJSON.prototype.onXHRError_ = function onXHRError_(event) {
+    this.handleTileJSONError();
+  };
+  /**
+   * @return {Config} The tilejson object.
+   * @api
+   */
+
+
+  TileJSON.prototype.getTileJSON = function getTileJSON() {
+    return this.tileJSON_;
+  };
+  /**
+   * @protected
+   * @param {Config} tileJSON Tile JSON.
+   */
+
+
+  TileJSON.prototype.handleTileJSONResponse = function handleTileJSONResponse(tileJSON) {
+    var epsg4326Projection = (0, _proj.get)('EPSG:4326');
+    var sourceProjection = this.getProjection();
+    var extent;
+
+    if (tileJSON['bounds'] !== undefined) {
+      var transform = (0, _proj.getTransformFromProjections)(epsg4326Projection, sourceProjection);
+      extent = (0, _extent.applyTransform)(tileJSON['bounds'], transform);
+    }
+
+    var minZoom = tileJSON['minzoom'] || 0;
+    var maxZoom = tileJSON['maxzoom'] || 22;
+    var tileGrid = (0, _tilegrid.createXYZ)({
+      extent: (0, _tilegrid.extentFromProjection)(sourceProjection),
+      maxZoom: maxZoom,
+      minZoom: minZoom
+    });
+    this.tileGrid = tileGrid;
+    this.tileUrlFunction = (0, _tileurlfunction.createFromTemplates)(tileJSON['tiles'], tileGrid);
+
+    if (tileJSON['attribution'] !== undefined && !this.getAttributions()) {
+      var attributionExtent = extent !== undefined ? extent : epsg4326Projection.getExtent();
+      this.setAttributions(function (frameState) {
+        if ((0, _extent.intersects)(attributionExtent, frameState.extent)) {
+          return [tileJSON['attribution']];
+        }
+
+        return null;
+      });
+    }
+
+    this.tileJSON_ = tileJSON;
+    this.setState(_State.default.READY);
+  };
+  /**
+   * @protected
+   */
+
+
+  TileJSON.prototype.handleTileJSONError = function handleTileJSONError() {
+    this.setState(_State.default.ERROR);
+  };
+
+  return TileJSON;
+}(_TileImage.default);
+
+var _default = TileJSON;
+exports.default = _default;
+},{"../tileurlfunction.js":"node_modules/ol/tileurlfunction.js","../asserts.js":"node_modules/ol/asserts.js","../extent.js":"node_modules/ol/extent.js","../net.js":"node_modules/ol/net.js","../proj.js":"node_modules/ol/proj.js","./State.js":"node_modules/ol/source/State.js","./TileImage.js":"node_modules/ol/source/TileImage.js","../tilegrid.js":"node_modules/ol/tilegrid.js"}],"node_modules/ol/source/XYZ.js":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -74421,7 +74697,212 @@ function register(proj4) {
     }
   }
 }
-},{"../proj.js":"node_modules/ol/proj.js","./transforms.js":"node_modules/ol/proj/transforms.js","./Projection.js":"node_modules/ol/proj/Projection.js"}],"maps_legend_builder/maps_legend_builder.js":[function(require,module,exports) {
+},{"../proj.js":"node_modules/ol/proj.js","./transforms.js":"node_modules/ol/proj/transforms.js","./Projection.js":"node_modules/ol/proj/Projection.js"}],"node_modules/ol/tilegrid/WMTS.js":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.createFromCapabilitiesMatrixSet = createFromCapabilitiesMatrixSet;
+exports.default = void 0;
+
+var _array = require("../array.js");
+
+var _proj = require("../proj.js");
+
+var _TileGrid = _interopRequireDefault(require("./TileGrid.js"));
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+/**
+ * @module ol/tilegrid/WMTS
+ */
+
+/**
+ * @typedef {Object} Options
+ * @property {import("../extent.js").Extent} [extent] Extent for the tile grid. No tiles
+ * outside this extent will be requested by {@link module:ol/source/Tile} sources.
+ * When no `origin` or `origins` are configured, the `origin` will be set to the
+ * top-left corner of the extent.
+ * @property {import("../coordinate.js").Coordinate} [origin] The tile grid origin, i.e.
+ * where the `x` and `y` axes meet (`[z, 0, 0]`). Tile coordinates increase left
+ * to right and upwards. If not specified, `extent` or `origins` must be provided.
+ * @property {Array<import("../coordinate.js").Coordinate>} [origins] Tile grid origins,
+ * i.e. where the `x` and `y` axes meet (`[z, 0, 0]`), for each zoom level. If
+ * given, the array length should match the length of the `resolutions` array, i.e.
+ * each resolution can have a different origin. Tile coordinates increase left to
+ * right and upwards. If not specified, `extent` or `origin` must be provided.
+ * @property {!Array<number>} resolutions Resolutions. The array index of each
+ * resolution needs to match the zoom level. This means that even if a `minZoom`
+ * is configured, the resolutions array will have a length of `maxZoom + 1`
+ * @property {!Array<string>} matrixIds matrix IDs. The length of this array needs
+ * to match the length of the `resolutions` array.
+ * @property {Array<import("../size.js").Size>} [sizes] Number of tile rows and columns
+ * of the grid for each zoom level. The values here are the `TileMatrixWidth` and
+ * `TileMatrixHeight` advertised in the GetCapabilities response of the WMTS, and
+ * define the grid's extent together with the `origin`.
+ * An `extent` can be configured in addition, and will further limit the extent for
+ * which tile requests are made by sources. Note that when the top-left corner of
+ * the `extent` is used as `origin` or `origins`, then the `y` value must be
+ * negative because OpenLayers tile coordinates increase upwards.
+ * @property {number|import("../size.js").Size} [tileSize] Tile size.
+ * @property {Array<import("../size.js").Size>} [tileSizes] Tile sizes. The length of
+ * this array needs to match the length of the `resolutions` array.
+ * @property {Array<number>} [widths] Number of tile columns that cover the grid's
+ * extent for each zoom level. Only required when used with a source that has `wrapX`
+ * set to `true`, and only when the grid's origin differs from the one of the
+ * projection's extent. The array length has to match the length of the `resolutions`
+ * array, i.e. each resolution will have a matching entry here.
+ */
+
+/**
+ * @classdesc
+ * Set the grid pattern for sources accessing WMTS tiled-image servers.
+ * @api
+ */
+var WMTSTileGrid =
+/*@__PURE__*/
+function (TileGrid) {
+  function WMTSTileGrid(options) {
+    TileGrid.call(this, {
+      extent: options.extent,
+      origin: options.origin,
+      origins: options.origins,
+      resolutions: options.resolutions,
+      tileSize: options.tileSize,
+      tileSizes: options.tileSizes,
+      sizes: options.sizes
+    });
+    /**
+     * @private
+     * @type {!Array<string>}
+     */
+
+    this.matrixIds_ = options.matrixIds;
+  }
+
+  if (TileGrid) WMTSTileGrid.__proto__ = TileGrid;
+  WMTSTileGrid.prototype = Object.create(TileGrid && TileGrid.prototype);
+  WMTSTileGrid.prototype.constructor = WMTSTileGrid;
+  /**
+   * @param {number} z Z.
+   * @return {string} MatrixId..
+   */
+
+  WMTSTileGrid.prototype.getMatrixId = function getMatrixId(z) {
+    return this.matrixIds_[z];
+  };
+  /**
+   * Get the list of matrix identifiers.
+   * @return {Array<string>} MatrixIds.
+   * @api
+   */
+
+
+  WMTSTileGrid.prototype.getMatrixIds = function getMatrixIds() {
+    return this.matrixIds_;
+  };
+
+  return WMTSTileGrid;
+}(_TileGrid.default);
+
+var _default = WMTSTileGrid;
+/**
+ * Create a tile grid from a WMTS capabilities matrix set and an
+ * optional TileMatrixSetLimits.
+ * @param {Object} matrixSet An object representing a matrixSet in the
+ *     capabilities document.
+ * @param {import("../extent.js").Extent=} opt_extent An optional extent to restrict the tile
+ *     ranges the server provides.
+ * @param {Array<Object>=} opt_matrixLimits An optional object representing
+ *     the available matrices for tileGrid.
+ * @return {WMTSTileGrid} WMTS tileGrid instance.
+ * @api
+ */
+
+exports.default = _default;
+
+function createFromCapabilitiesMatrixSet(matrixSet, opt_extent, opt_matrixLimits) {
+  /** @type {!Array<number>} */
+  var resolutions = [];
+  /** @type {!Array<string>} */
+
+  var matrixIds = [];
+  /** @type {!Array<import("../coordinate.js").Coordinate>} */
+
+  var origins = [];
+  /** @type {!Array<import("../size.js").Size>} */
+
+  var tileSizes = [];
+  /** @type {!Array<import("../size.js").Size>} */
+
+  var sizes = [];
+  var matrixLimits = opt_matrixLimits !== undefined ? opt_matrixLimits : [];
+  var supportedCRSPropName = 'SupportedCRS';
+  var matrixIdsPropName = 'TileMatrix';
+  var identifierPropName = 'Identifier';
+  var scaleDenominatorPropName = 'ScaleDenominator';
+  var topLeftCornerPropName = 'TopLeftCorner';
+  var tileWidthPropName = 'TileWidth';
+  var tileHeightPropName = 'TileHeight';
+  var code = matrixSet[supportedCRSPropName];
+  var projection = (0, _proj.get)(code.replace(/urn:ogc:def:crs:(\w+):(.*:)?(\w+)$/, '$1:$3')) || (0, _proj.get)(code);
+  var metersPerUnit = projection.getMetersPerUnit(); // swap origin x and y coordinates if axis orientation is lat/long
+
+  var switchOriginXY = projection.getAxisOrientation().substr(0, 2) == 'ne';
+  matrixSet[matrixIdsPropName].sort(function (a, b) {
+    return b[scaleDenominatorPropName] - a[scaleDenominatorPropName];
+  });
+  matrixSet[matrixIdsPropName].forEach(function (elt) {
+    var matrixAvailable; // use of matrixLimits to filter TileMatrices from GetCapabilities
+    // TileMatrixSet from unavailable matrix levels.
+
+    if (matrixLimits.length > 0) {
+      matrixAvailable = (0, _array.find)(matrixLimits, function (elt_ml) {
+        if (elt[identifierPropName] == elt_ml[matrixIdsPropName]) {
+          return true;
+        } // Fallback for tileMatrix identifiers that don't get prefixed
+        // by their tileMatrixSet identifiers.
+
+
+        if (elt[identifierPropName].indexOf(':') === -1) {
+          return matrixSet[identifierPropName] + ':' + elt[identifierPropName] === elt_ml[matrixIdsPropName];
+        }
+
+        return false;
+      });
+    } else {
+      matrixAvailable = true;
+    }
+
+    if (matrixAvailable) {
+      matrixIds.push(elt[identifierPropName]);
+      var resolution = elt[scaleDenominatorPropName] * 0.28E-3 / metersPerUnit;
+      var tileWidth = elt[tileWidthPropName];
+      var tileHeight = elt[tileHeightPropName];
+
+      if (switchOriginXY) {
+        origins.push([elt[topLeftCornerPropName][1], elt[topLeftCornerPropName][0]]);
+      } else {
+        origins.push(elt[topLeftCornerPropName]);
+      }
+
+      resolutions.push(resolution);
+      tileSizes.push(tileWidth == tileHeight ? tileWidth : [tileWidth, tileHeight]); // top-left origin, so height is negative
+
+      sizes.push([elt['MatrixWidth'], -elt['MatrixHeight']]);
+    }
+  });
+  return new WMTSTileGrid({
+    extent: opt_extent,
+    origins: origins,
+    resolutions: resolutions,
+    matrixIds: matrixIds,
+    tileSizes: tileSizes,
+    sizes: sizes
+  });
+}
+},{"../array.js":"node_modules/ol/array.js","../proj.js":"node_modules/ol/proj.js","./TileGrid.js":"node_modules/ol/tilegrid/TileGrid.js"}],"maps_legend_builder/maps_legend_builder.js":[function(require,module,exports) {
 var globalGap = 5;
 var globalFont = "10pt Arial";
 var globalTextColor = "black";
@@ -76621,6 +77102,8 @@ var _VectorTile = _interopRequireDefault(require("ol/source/VectorTile.js"));
 
 var _GeoJSON = _interopRequireDefault(require("ol/format/GeoJSON"));
 
+var _TileJSON = _interopRequireDefault(require("ol/source/TileJSON.js"));
+
 var _OSM = _interopRequireDefault(require("ol/source/OSM"));
 
 var _MVT = _interopRequireDefault(require("ol/format/MVT.js"));
@@ -76631,11 +77114,13 @@ var _TileGrid = _interopRequireDefault(require("ol/tilegrid/TileGrid"));
 
 var _proj = _interopRequireDefault(require("proj4"));
 
-var _proj2 = require("ol/proj/proj4");
+var _proj2 = _interopRequireDefault(require("ol/proj/proj4"));
 
 var _proj3 = require("ol/proj");
 
 var _proj4 = require("ol/proj.js");
+
+var _WMTS = _interopRequireDefault(require("ol/tilegrid/WMTS.js"));
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -76655,19 +77140,34 @@ function round(value, decimals) {
 //   '+x_0=600000 +y_0=200000 +ellps=bessel ' +
 //   '+towgs84=660.077,13.551,369.344,2.484,1.783,2.939,5.66 +units=m +no_defs');
 // register(proj4);
-// const prj = getProjection('EPSG:21781');
+// const prj = getProjection('EPSG:4326');
 
 
 var host = "localhost:8080/geoserver";
-var host2 = "autolab.geogr.msu.ru:8080/geoserver";
-var epsg = 900913;
+var host2 = "autolab.geogr.msu.ru:8080/geoserver"; // var epsg = 900913
+
 var seas = ['baltic', 'barentsz', 'black', 'kaspiy'];
 var vars = ['esr', 'hsr', 'psr', 'lsr', 'hs', 'h3p'];
+var prj = new _proj4.Projection({
+  code: 'EPSG:4326',
+  units: 'degrees',
+  axisOrientation: 'neu'
+});
+var gridNames = ['EPSG:4326:0', 'EPSG:4326:1', 'EPSG:4326:2', 'EPSG:4326:3', 'EPSG:4326:4', 'EPSG:4326:5', 'EPSG:4326:6', 'EPSG:4326:7', 'EPSG:4326:8', 'EPSG:4326:9', 'EPSG:4326:10', 'EPSG:4326:11', 'EPSG:4326:12', 'EPSG:4326:13', 'EPSG:4326:14', 'EPSG:4326:15', 'EPSG:4326:16', 'EPSG:4326:17', 'EPSG:4326:18', 'EPSG:4326:19', 'EPSG:4326:20', 'EPSG:4326:21'];
+var resolutions = [0.703125, 0.3515625, 0.17578125, 0.087890625, 0.0439453125, 0.02197265625, 0.010986328125, 0.0054931640625, 0.00274658203125, 0.001373291015625, 6.866455078125E-4, 3.4332275390625E-4, 1.71661376953125E-4, 8.58306884765625E-5, 4.291534423828125E-5, 2.1457672119140625E-5, 1.0728836059570312E-5, 5.364418029785156E-6, 2.682209014892578E-6, 1.341104507446289E-6, 6.705522537231445E-7, 3.3527612686157227E-7];
 
 function vt_source(host, name) {
   var epsg = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 900913;
   return new _VectorTile.default({
     format: new _MVT.default(),
+    // projection: prj,
+    // tileGrid: new WMTS({
+    //   tileSize: [256,256],
+    //   origin: [-180.0, 90.0],
+    //   resolutions: resolutions,
+    //   matrixIds: gridNames
+    // }),
+    // wrapX: true,
     url: "http://".concat(host, "/gwc/service/tms/1.0.0/").concat(name, "@EPSG%3A").concat(epsg, "@pbf/{z}/{x}/{-y}.pbf")
   });
 }
@@ -76695,17 +77195,13 @@ function get_color(palette, value, min, max, step) {
     var k = Math.floor(nbins / 9) + 1;
     var nbins_new = Math.ceil(nbins / k) + 1;
     var bin_new = Math.floor((value - min) * (nbins_new - 1) / (max - min));
-    bin_new = bin_new < 0 ? 0 : bin_new; // console.log([nbins_new, bin_new])
-
-    var hsl1 = convert.hex.rgb(palette[nbins_new][bin_new]); // if (bin % k == 0) {
-    //   return '#' + convert.rgb.hex(hsl1);
-    // } else {
-
+    bin_new = bin_new < 0 ? 0 : bin_new;
+    var hsl1 = convert.hex.rgb(palette[nbins_new][bin_new]);
     var hsl2 = convert.hex.rgb(palette[nbins_new][bin_new + 1]);
     var w = 1 - bin % k / k; // weighting coefficient
 
     var hsl = [Math.floor(w * hsl1[0] + (1 - w) * hsl2[0]), Math.floor(w * hsl1[1] + (1 - w) * hsl2[1]), Math.floor(w * hsl1[2] + (1 - w) * hsl2[2])];
-    return '#' + convert.rgb.hex(hsl); // }
+    return '#' + convert.rgb.hex(hsl);
   }
 }
 
@@ -76716,13 +77212,12 @@ function get_colors(palette, min, max, step) {
   while (val < max) {
     arr.push(get_color(palette, val, min, max, step));
     val += step;
-  } // console.log(arr);
-
+  }
 
   return arr;
 }
 
-var get_values = function get_values(from, to, by) {
+function get_values(from, to, by) {
   var arr = [];
   var val = from;
 
@@ -76732,7 +77227,7 @@ var get_values = function get_values(from, to, by) {
   }
 
   return arr;
-};
+}
 
 function band_style(feature, resolution, palette, value, from, to, by) {
   var field = arguments.length > 7 && arguments[7] !== undefined ? arguments[7] : 'Z_Mean';
@@ -76744,7 +77239,7 @@ function band_style(feature, resolution, palette, value, from, to, by) {
   });
 }
 
-var cont_style = function cont_style(feature, resolution) {
+function cont_style(feature, resolution) {
   var idx = feature.get('index');
   return new _style.Style({
     stroke: new _style.Stroke({
@@ -76752,9 +77247,9 @@ var cont_style = function cont_style(feature, resolution) {
       width: idx == 1 ? 1 : 0.5
     })
   });
-};
+}
 
-var cont_label_style = function cont_label_style(feature, resolution) {
+function cont_label_style(feature, resolution) {
   var idx = feature.get('index');
   var z = round(feature.get('Z'), 1);
   var len = feature.get('Shape_Length');
@@ -76776,7 +77271,7 @@ var cont_label_style = function cont_label_style(feature, resolution) {
       })
     });
   }
-};
+}
 
 var bnd_lyr = new _layer.Vector({
   style: new _style.Style({
@@ -76976,17 +77471,13 @@ var city_lyr = new _layer.Vector({
         fill: new _style.Fill({
           color: '#000'
         }),
-        // stroke: new ol.style.Stroke({
-        //   color: '#fff',
-        //   width: 2
-        // }),
         offsetY: -10
       })
     });else return new _style.Style({});
   },
   declutter: true
 });
-var center = (0, _proj4.transform)([90, 60], 'EPSG:4326', 'EPSG:3857'); // var key = 'pk.eyJ1IjoiaWFtc3RlIiwiYSI6ImNqYm1ibWJiZjF1azUyd3Rncnk0Mjd3bTkifQ.9TWQZoeHu-bIJNRFT6TW4A'
+var center = (0, _proj4.transform)([40, 60], 'EPSG:4326', 'EPSG:3857'); // var key = 'pk.eyJ1IjoiaWFtc3RlIiwiYSI6ImNqYm1ibWJiZjF1azUyd3Rncnk0Mjd3bTkifQ.9TWQZoeHu-bIJNRFT6TW4A'
 //
 // var mbx = new VectorTileLayer({
 //   declutter: true,
@@ -77011,7 +77502,8 @@ var map = new _ol2.Map({
   world_lyr, hs_lyr_group, land_lyr, bnd_lyr, coast_lyr, city_lyr],
   view: new _ol2.View({
     center: center,
-    zoom: 4 // projection: 'EPSG:4326'
+    // center: [40, 60],
+    zoom: 4 // projection: prj
 
   })
 });
@@ -77019,11 +77511,11 @@ var cur_var = hs_lyr_group;
 var mySelect = document.getElementById('varList');
 mySelect.value = 'hs';
 
-var insert_legend = function insert_legend(palette, from, to, by) {
+function insert_legend(palette, from, to, by) {
   var id = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : 'td00';
   document.getElementById(id).innerHTML = "";
   tools.layeredColoring(0, 0, get_colors(palette, from, to, by), false, [30, 15], false, get_values(from, to, by), "8pt Arial", "black", 30, 20, false, "", "bold 10pt Arial");
-};
+}
 
 mySelect.onchange = function () {
   var x = document.getElementById("varList").value;
@@ -77066,12 +77558,11 @@ mySelect.onchange = function () {
   }
 
   map.getLayers().insertAt(1, cur_var);
-}; // console.log(get_colors(colorbrewer.YlGnBu, 0, 1.3, 0.1))
-
+};
 
 tools.tablesInit(1, [1], "legend");
 tools.layeredColoring(0, 0, get_colors(colorbrewer.RdPu, 0, 18, 1), false, [30, 15], false, get_values(0, 18, 1), "8pt Arial", "black", 30, 20, false, "", "bold 10pt Arial");
-},{"ol/ol.css":"node_modules/ol/ol.css","ol":"node_modules/ol/index.js","ol/layer.js":"node_modules/ol/layer.js","ol/source/Vector.js":"node_modules/ol/source/Vector.js","ol/source/VectorTile.js":"node_modules/ol/source/VectorTile.js","ol/format/GeoJSON":"node_modules/ol/format/GeoJSON.js","ol/source/OSM":"node_modules/ol/source/OSM.js","ol/format/MVT.js":"node_modules/ol/format/MVT.js","ol/style":"node_modules/ol/style.js","ol/tilegrid/TileGrid":"node_modules/ol/tilegrid/TileGrid.js","proj4":"node_modules/proj4/lib/index.js","ol/proj/proj4":"node_modules/ol/proj/proj4.js","ol/proj":"node_modules/ol/proj.js","ol/proj.js":"node_modules/ol/proj.js","./maps_legend_builder/maps_legend_builder.js":"maps_legend_builder/maps_legend_builder.js","colorbrewer":"node_modules/colorbrewer/index.js","color-convert":"node_modules/color-convert/index.js"}],"node_modules/parcel-bundler/src/builtins/hmr-runtime.js":[function(require,module,exports) {
+},{"ol/ol.css":"node_modules/ol/ol.css","ol":"node_modules/ol/index.js","ol/layer.js":"node_modules/ol/layer.js","ol/source/Vector.js":"node_modules/ol/source/Vector.js","ol/source/VectorTile.js":"node_modules/ol/source/VectorTile.js","ol/format/GeoJSON":"node_modules/ol/format/GeoJSON.js","ol/source/TileJSON.js":"node_modules/ol/source/TileJSON.js","ol/source/OSM":"node_modules/ol/source/OSM.js","ol/format/MVT.js":"node_modules/ol/format/MVT.js","ol/style":"node_modules/ol/style.js","ol/tilegrid/TileGrid":"node_modules/ol/tilegrid/TileGrid.js","proj4":"node_modules/proj4/lib/index.js","ol/proj/proj4":"node_modules/ol/proj/proj4.js","ol/proj":"node_modules/ol/proj.js","ol/proj.js":"node_modules/ol/proj.js","ol/tilegrid/WMTS.js":"node_modules/ol/tilegrid/WMTS.js","./maps_legend_builder/maps_legend_builder.js":"maps_legend_builder/maps_legend_builder.js","colorbrewer":"node_modules/colorbrewer/index.js","color-convert":"node_modules/color-convert/index.js"}],"node_modules/parcel-bundler/src/builtins/hmr-runtime.js":[function(require,module,exports) {
 var global = arguments[3];
 var OVERLAY_ID = '__parcel__error__overlay__';
 var OldModule = module.bundle.Module;
@@ -77099,7 +77590,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "56635" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "50651" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};
