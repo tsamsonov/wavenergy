@@ -18,7 +18,7 @@ import WMTS from 'ol/tilegrid/WMTS.js'
 var tools = require('./maps_legend_builder/maps_legend_builder.js');
 
 const colorbrewer = require('colorbrewer');
-var convert = require('color-convert');
+const convert = require('color-convert');
 
 function round(value, decimals) {
   return Number(Math.round(value+'e'+decimals)+'e-'+decimals);
@@ -56,14 +56,6 @@ var resolutions = [0.703125, 0.3515625, 0.17578125, 0.087890625, 0.0439453125, 0
 function vt_source(host, name, epsg = 900913){
   return new VectorTileSource({
     format: new MVT(),
-    // projection: prj,
-    // tileGrid: new WMTS({
-    //   tileSize: [256,256],
-    //   origin: [-180.0, 90.0],
-    //   resolutions: resolutions,
-    //   matrixIds: gridNames
-    // }),
-    // wrapX: true,
     url: `http://${host}/gwc/service/tms/1.0.0/${name}@EPSG%3A${epsg}@pbf/{z}/{x}/{-y}.pbf`
   })
 }
@@ -369,7 +361,7 @@ var esr_lyr_group = new Group({
        var z = feature.get('Z_Mean');
        return new Style({
           fill: new Fill({
-            color: get_color(colorbrewer.YlGnBu, z, 0, 32, 2)
+            color: get_color(colorbrewer.YlGnBu, z, 0, 35, 2.5)
           })
         })
       },
@@ -488,19 +480,19 @@ mySelect.onchange = function() {
         break;
       case 'hsr':
         cur_var = hsr_lyr_group;
-        insert_legend(colorbrewer.OrRd, 0, 1.4, 0.1);
+        insert_legend(colorbrewer.OrRd, 0, 2.8, 0.2);
         break;
       case 'lsr':
         cur_var = lsr_lyr_group;
-        insert_legend(colorbrewer.Blues, 0, 28, 2);
+        insert_legend(colorbrewer.Blues, 0, 80, 5);
         break;
       case 'psr':
         cur_var = psr_lyr_group;
-        insert_legend(colorbrewer.Greens, 0, 4.5, 0.5);
+        insert_legend(colorbrewer.Greens, 0, 5, 0.5);
         break;
       case 'esr':
         cur_var = esr_lyr_group;
-        insert_legend(colorbrewer.YlGnBu, 0, 7, 0.5);
+        insert_legend(colorbrewer.YlGnBu, 0, 35, 2.5);
         break;
       case 'osr':
         break;
@@ -509,9 +501,6 @@ mySelect.onchange = function() {
     map.getLayers().insertAt(1, cur_var);
 }
 
+
 tools.tablesInit(1, [1], "legend");
-tools.layeredColoring(0, 0,
-            get_colors(colorbrewer.RdPu, 0, 18, 1),
-            false, [30, 15], false,
-            get_values(0, 18, 1), "8pt Arial", "black", 30, 20,
-            false, "", "bold 10pt Arial");
+insert_legend(colorbrewer.RdPu, 0, 18, 1);
