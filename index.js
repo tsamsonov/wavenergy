@@ -1,4 +1,5 @@
 import 'ol/ol.css';
+import Vue from 'vue'
 import {Map, View} from 'ol';
 import {Tile as TileLayer, Vector as VectorLayer, VectorTile as VectorTileLayer, Group } from 'ol/layer.js';
 import VectorSource from 'ol/source/Vector.js';
@@ -14,6 +15,15 @@ import register from 'ol/proj/proj4';
 import {get as getProjection} from 'ol/proj';
 import {transform, Projection} from 'ol/proj.js';
 import WMTS from 'ol/tilegrid/WMTS.js'
+import Control from 'ol/control/Control';
+import Plotly from 'plotly'
+
+// var app = new Vue({
+//   el: '#manager',
+//   data: {
+//     message: 'Выберите параметр:'
+//   }
+// })
 
 var tools = require('./maps_legend_builder/maps_legend_builder.js');
 
@@ -40,7 +50,7 @@ var host2 = "autolab.geogr.msu.ru:8080/geoserver";
 // var epsg = 900913
 
 var seas = ['baltic', 'barentsz', 'black', 'kaspiy']
-var vars = ['esr', 'hsr', 'psr', 'lsr', 'hs', 'h3p']
+var vars = ['esr', 'hsr', 'psr', 'lsr', 'hs', 'h3p', 'osr', 'wind_grp_50', 'wind_grp_100']
 
 var prj = new Projection({
   code: 'EPSG:4326',
@@ -379,6 +389,182 @@ var esr_lyr_group = new Group({
   ]
 });
 
+var osr_lyr_group = new Group({
+  combine: true,
+  visible: true,
+  name: 'osr',
+  layers: [
+    new VectorTileLayer({
+      style: function(feature, resolution) {
+       var z = feature.get('Z_MEAN');
+       return new Style({
+          fill: new Fill({
+            color: get_color(colorbrewer.YlGn, z, 0, 60, 5)
+          })
+        })
+      },
+      source: vt_source(host, 'wavenergy:osr_band')
+    }),
+    new VectorTileLayer({
+      style: cont_style,
+      source: vt_source(host, 'wavenergy:osr_cont')
+    }),
+    new VectorLayer({
+      declutter: true,
+      style: cont_label_style,
+      source: vector_source(host, 'wavenergy:osr_cont')
+    })
+  ]
+});
+
+var wind_grp_50_lyr_group = new Group({
+  combine: true,
+  visible: true,
+  name: 'psr',
+  layers: [
+    new VectorTileLayer({
+      style: function(feature, resolution) {
+       var z = feature.get('Z_Mean');
+       return new Style({
+          fill: new Fill({
+            color: get_color(colorbrewer.PuBuGn, z, 0, 1200, 100)
+          })
+        })
+      },
+      source: vt_source(host, 'wavenergy:wind_grp50_band')
+    }),
+    new VectorTileLayer({
+      style: cont_style,
+      source: vt_source(host, 'wavenergy:wind_grp50_cont')
+    }),
+    new VectorLayer({
+      declutter: true,
+      style: cont_label_style,
+      source: vector_source(host, 'wavenergy:wind_grp50_cont')
+    })
+  ]
+});
+
+var wind_grp_100_lyr_group = new Group({
+  combine: true,
+  visible: true,
+  name: 'psr',
+  layers: [
+    new VectorTileLayer({
+      style: function(feature, resolution) {
+       var z = feature.get('Z_Mean');
+       return new Style({
+          fill: new Fill({
+            color: get_color(colorbrewer.PuBuGn, z, 0, 1200, 100)
+          })
+        })
+      },
+      source: vt_source(host, 'wavenergy:wind_grp100_band')
+    }),
+    new VectorTileLayer({
+      style: cont_style,
+      source: vt_source(host, 'wavenergy:wind_grp100_cont')
+    }),
+    new VectorLayer({
+      declutter: true,
+      style: cont_label_style,
+      source: vector_source(host, 'wavenergy:wind_grp100_cont')
+    })
+  ]
+});
+
+var wind_grp_50c_lyr_group = new Group({
+  combine: true,
+  visible: true,
+  name: 'grp_50',
+  layers: [
+    new VectorTileLayer({
+      style: function(feature, resolution) {
+       var z = feature.get('grp_50');
+       return new Style({
+          fill: new Fill({
+            color: get_color(colorbrewer.PuBuGn, z, 0, 1200, 100)
+          }),
+          stroke: new Stroke({
+            color: '#000000',
+            width: 0.1
+          })
+        })
+      },
+      source: vt_source(host, 'wavenergy:wind')
+    })
+  ]
+});
+
+var wind_grp_100c_lyr_group = new Group({
+  combine: true,
+  visible: true,
+  name: 'grp_100',
+  layers: [
+    new VectorTileLayer({
+      style: function(feature, resolution) {
+       var z = feature.get('grp_100');
+       return new Style({
+          fill: new Fill({
+            color: get_color(colorbrewer.PuBuGn, z, 0, 1200, 100)
+          }),
+          stroke: new Stroke({
+            color: '#000000',
+            width: 0.1
+          })
+        })
+      },
+      source: vt_source(host, 'wavenergy:wind')
+    })
+  ]
+});
+
+var wind_spd_50c_lyr_group = new Group({
+  combine: true,
+  visible: true,
+  name: 'wind_spd_50c_lyr_group',
+  layers: [
+    new VectorTileLayer({
+      style: function(feature, resolution) {
+       var z = feature.get('spd_50_year');
+       return new Style({
+          fill: new Fill({
+            color: get_color(colorbrewer.PuBuGn, z, 0, 9, 1)
+          }),
+          stroke: new Stroke({
+            color: '#000000',
+            width: 0.1
+          })
+        })
+      },
+      source: vt_source(host, 'wavenergy:wind')
+    })
+  ]
+});
+
+var wind_spd_100c_lyr_group = new Group({
+  combine: true,
+  visible: true,
+  name: 'wind_spd_100c_lyr_group',
+  layers: [
+    new VectorTileLayer({
+      style: function(feature, resolution) {
+       var z = feature.get('spd_100_year');
+       return new Style({
+          fill: new Fill({
+            color: get_color(colorbrewer.PuBuGn, z, 0, 9, 1)
+          }),
+          stroke: new Stroke({
+            color: '#000000',
+            width: 0.1
+          })
+        })
+      },
+      source: vt_source(host, 'wavenergy:wind')
+    })
+  ]
+});
+
 var city_lyr = new VectorLayer({
   source: vector_source(host, 'ne:ne_50m_populated_places'),
   style: function(feature, resolution) {
@@ -469,6 +655,8 @@ mySelect.onchange = function() {
 
    map.removeLayer(cur_var);
 
+   var level = 1;
+
    switch(x) {
       case 'hs':
         cur_var = hs_lyr_group;
@@ -495,10 +683,43 @@ mySelect.onchange = function() {
         insert_legend(colorbrewer.YlGnBu, 0, 35, 2.5);
         break;
       case 'osr':
+        cur_var = osr_lyr_group;
+        insert_legend(colorbrewer.YlGn, 0, 60, 5);
         break;
+      case 'wind_grp_50':
+        cur_var = wind_grp_50_lyr_group;
+        insert_legend(colorbrewer.PuBuGn, 0, 1200, 100);
+        level = 2;
+        break;
+      case 'wind_grp_100':
+        cur_var = wind_grp_100_lyr_group;
+        insert_legend(colorbrewer.PuBuGn, 0, 1200, 100);
+        level = 2;
+        break;
+      case 'wind_grp_50c':
+        cur_var = wind_grp_50c_lyr_group;
+        insert_legend(colorbrewer.PuBuGn, 0, 1200, 100);
+        level = 2;
+        break;
+      case 'wind_grp_100c':
+        cur_var = wind_grp_100c_lyr_group;
+        insert_legend(colorbrewer.PuBuGn, 0, 1200, 100);
+        level = 2;
+        break;
+      case 'wind_spd_50c_year':
+        cur_var = wind_spd_50c_lyr_group;
+        insert_legend(colorbrewer.PuBuGn, 0, 8, 1);
+        level = 2;
+        break;
+      case 'wind_spd_100c_year':
+        cur_var = wind_spd_100c_lyr_group;
+        insert_legend(colorbrewer.PuBuGn, 0, 8, 1);
+        level = 2;
+        break;
+
     }
 
-    map.getLayers().insertAt(1, cur_var);
+    map.getLayers().insertAt(level, cur_var);
 }
 
 

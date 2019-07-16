@@ -5,15 +5,20 @@
     <title>Атлас ресурсов волновой энергии прибрежных морей России</title>
     <style>
       #map {
-        width: 80%;
-        height: 80%;
+        width: 100%;
+        height: 90%;
       }
+      /* #plot {
+        width: 80%;
+        height: 20%;
+      } */
     </style>
     <script src="https://openlayers.org/en/v5.3.0/examples/resources/mapbox-streets-v6-style.js"></script>
   </head>
   <body>
     <div id="manager">
      <label>Выберите параметр</label>
+     <!-- {{ message }} -->
      <select id = "varList">
        <option value = "hs">Максимальная высота значительных волн, [м]</option>
        <option value = "h3p">Максимальная высота волн (3%), [м]</option>
@@ -21,11 +26,18 @@
        <option value = "esr">Средняя энергия волн, [кВт/м]</option>
        <option value = "lsr">Средняя длина волн, [м]</option>
        <option value = "psr">Средний период волн, [с]</option>
-       <!-- <option value = "osr">Обеспеченность 1 кВт, [%]</option> -->
+       <option value = "osr">Обеспеченность >1 кВт, [%]</option>
+       <option value = "wind_grp_50">Валовый потенциал ветровой энергии на высоте 50 м, [Вт/кв.м] — изолинии</option>
+       <option value = "wind_grp_100">Валовый потенциал ветровой энергии на высоте 100 м, [Вт/кв.м] — изолинии</option>
+       <option value = "wind_grp_50c">Валовый потенциал ветровой энергии на высоте 50 м, [Вт/кв.м] — сетка</option>
+       <option value = "wind_grp_100c">Валовый потенциал ветровой энергии на высоте 100 м, [Вт/кв.м] — сетка</option>
+       <option value = "wind_spd_50c_year">Скорость ветра на высоте 50 м, [м/с] — сетка</option>
+       <option value = "wind_spd_100c_year">Скорость ветра на высоте 100 м, [м/с] - сетка</option>
      </select>
     </div>
     <div id="legend"></div>
     <div id="map"></div>
+    <!-- <div id="plot"></div> -->
     <script src="./index.js"></script>
   </body>
 </html>
