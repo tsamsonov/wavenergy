@@ -1,0 +1,21 @@
+module.exports = {
+  world_lyr,
+  hs_lyr_group,
+  land_lyr,
+  bnd_lyr,
+  coast_lyr,
+  city_lyr,
+  hs_lyr_group,
+  h3p_lyr_group,
+  hsr_lyr_group,
+  lsr_lyr_group,
+  psr_lyr_group,
+  esr_lyr_group,
+  osr_lyr_group,
+  wind_grp_50_lyr_group,
+  wind_grp_100_lyr_group,
+  wind_grp_50c_lyr_group,
+  wind_grp_100c_lyr_group,
+  wind_spd_50c_lyr_group,
+  wind_spd_100c_lyr_group
+}
