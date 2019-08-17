@@ -379,27 +379,43 @@ var wind_grp_100c_lyr_group = new Group({
   ]
 });
 
-var wind_spd_50c_lyr_group = new Group({
-  combine: true,
-  visible: true,
-  name: 'wind_spd_50c_lyr_group',
-  layers: [
-    new VectorLayer({
-      style: function(feature, resolution) {
-       var z = feature.get('spd_50_year');
-       return new Style({
-          fill: new Fill({
-            color: fun.get_color(colorbrewer.PuBuGn, z, 0, 9, 1)
-          }),
-          stroke: new Stroke({
-            color: '#000000',
-            width: 0.1
-          })
-        })
-      },
-      source: vector_source(host, 'wavenergy:wind', epsg)
+// var wind_spd_50c_lyr_group = new Group({
+//   combine: true,
+//   visible: true,
+//   name: 'wind_spd_50c_lyr_group',
+//   layers: [
+//     new VectorLayer({
+//       style: function(feature, resolution) {
+//        var z = feature.get('spd_50_year');
+//        return new Style({
+//           fill: new Fill({
+//             color: fun.get_color(colorbrewer.PuBuGn, z, 0, 9, 1)
+//           }),
+//           stroke: new Stroke({
+//             color: '#000000',
+//             width: 0.1
+//           })
+//         })
+//       },
+//       source: vector_source(host, 'wavenergy:wind', epsg)
+//     })
+//   ]
+// });
+
+var wind_spd_50c_lyr_group = new VectorLayer({
+  style: function(feature, resolution) {
+   var z = feature.get('spd_50_year');
+   return new Style({
+      fill: new Fill({
+        color: fun.get_color(colorbrewer.PuBuGn, z, 0, 9, 1)
+      }),
+      stroke: new Stroke({
+        color: '#000000',
+        width: 0.1
+      })
     })
-  ]
+  },
+  source: vector_source(host, 'wavenergy:wind', epsg)
 });
 
 var wind_spd_100c_lyr_group = new Group({

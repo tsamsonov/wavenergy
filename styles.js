@@ -1,6 +1,13 @@
 import {Fill, Stroke, Icon, Style, Text, Circle} from 'ol/style';
 var fun = require('./functions.js')
 
+var selectedStyle = new Style({
+  stroke: new Stroke({
+    color: 'red',
+    width: 3
+  })
+})
+
 function band_style(feature, resolution, palette,
                     value, from, to, by, field = 'Z_Mean') {
   var z = feature.get(field);
@@ -48,5 +55,5 @@ function cont_label_style(feature, resolution) {
 }
 
 module.exports = {
-  band_style, cont_style, cont_label_style
+  selectedStyle, band_style, cont_style, cont_label_style
 }

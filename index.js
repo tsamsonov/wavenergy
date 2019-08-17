@@ -20,10 +20,17 @@ import Control from 'ol/control/Control';
 import Plotly from 'plotly';
 import Graticule from 'ol/Graticule.js';
 import Overlay from 'ol/Overlay.js';
+import Select from 'ol/interaction/Select.js'
+import click from 'ol/events/condition.js'
+import $ from 'jquery'
+import 'popper.js'
+import 'bootstrap'
+import 'bootstrap/dist/css/bootstrap.css';
 
 // import * as layers from './layers.js';
-var fun = require('./functions.js')
+var fun = require('./functions.js');
 var layers = require('./layers.js');
+var styles = require('./styles.js');
 import * as tools from './maps_legend_builder/maps_legend_builder.js';
 
 const colorbrewer = require('colorbrewer');
@@ -40,14 +47,6 @@ var prj = new Projection({
 
 var seas = ['baltic', 'barentsz', 'black', 'kaspiy']
 var vars = ['esr', 'hsr', 'psr', 'lsr', 'hs', 'h3p', 'osr', 'wind_grp_50', 'wind_grp_100']
-
-// var popup = new Overlay({
-//   element: document.getElementById('popup'),
-//   autoPan: true,
-//   autoPanAnimation: {
-//     duration: 250
-//   }
-// });
 
 const map = new Map({
   target: 'map',
@@ -74,11 +73,73 @@ const map = new Map({
   })
 });
 
+var popup = new Overlay({
+  element: document.getElementById('popup'),
+  autoPan: true,
+  autoPanAnimation: {
+    duration: 250
+  }
+});
+
+var cur_var = layers.hs_lyr_group;
+var cur_data = layers.wind_spd_50c_lyr_group;
+// var cur_data = layers.wind_spd_50c_lyr_group.getLayers().item(0);
+
+var selectClick = new Select({
+  condition: click,
+  layers: function(layer) {
+            return layer === cur_data
+          },
+  hitTolerance: 1
+});
+
+map.addOverlay(popup);
+map.addInteraction(selectClick);
+
+// map.on('click', function(e) {
+//   var element = popup.getElement();
+//   $(element).popover('dispose');
+// });
+
+selectClick.on('select', function(evt) {
+  // document.getElementById('nodelist').innerHTML = "Loading... please wait...";
+
+  var selected = evt.selected[0];
+  var deselected = evt.deselected;
+
+  // if (selected.length) {
+  //     selected.setStyle(styles.selectedStyle);
+  // } else {
+  //     deselected.setStyle(null);
+  // }
+
+  var z = selected.get('spd_50_year')
+
+  var coordinate = evt.mapBrowserEvent.coordinate;
+  var element = popup.getElement();
+
+  console.log(coordinate);
+
+  $(element).popover('dispose');
+  popup.setPosition(coordinate);
+
+  $(element).popover({
+    'placement': 'top',
+    'animation': false,
+    'html': true,
+    'trigger': 'focus',
+    'content': '<p>Z: <code>'  + z +   '</code></p>'
+  });
+
+  $(element).popover('show');
+
+    // document.getElementById('popup').innerHTML = '<iframe seamless src="' + url + '"></iframe>';
+});
 // new Graticule({
 //   map: map
 // });
 
-var cur_var = layers.hs_lyr_group;
+
 
 var mySelect = document.getElementById('varList');
 
