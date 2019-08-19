@@ -442,7 +442,7 @@ var wind_spd_100c_lyr_group = new Group({
 });
 
 var city_lyr = new VectorLayer({
-  source: vector_source(host, 'ne:ne_50m_populated_places', epsg),
+  source: vector_source(host, 'ne:ne_50m_populated_places'),
   style: function(feature, resolution) {
     if (feature.get('FEATURECLA') =='Admin-0 capital')
       return new Style({
@@ -470,6 +470,10 @@ var city_lyr = new VectorLayer({
   declutter: true
 });
 
+var voronoy_lyr = new VectorLayer({
+  source: vector_source(host, 'wavenergy:all_voronoy')
+});
+
 module.exports = {
   world_lyr,
   hs_lyr_group,
@@ -489,5 +493,6 @@ module.exports = {
   wind_grp_50c_lyr_group,
   wind_grp_100c_lyr_group,
   wind_spd_50c_lyr_group,
-  wind_spd_100c_lyr_group
+  wind_spd_100c_lyr_group,
+  voronoy_lyr
 }

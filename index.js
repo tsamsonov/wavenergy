@@ -56,6 +56,7 @@ const map = new Map({
     //   source: new OSM(),
     // }),
     // mbx,
+    layers.voronoy_lyr,
     layers.world_lyr,
     layers.hs_lyr_group,
     layers.land_lyr,
@@ -82,7 +83,7 @@ var popup = new Overlay({
 });
 
 var cur_var = layers.hs_lyr_group;
-var cur_data = layers.wind_spd_50c_lyr_group;
+var cur_data = layers.voronoy_lyr;
 // var cur_data = layers.wind_spd_50c_lyr_group.getLayers().item(0);
 
 var selectClick = new Select({
@@ -113,7 +114,7 @@ selectClick.on('select', function(evt) {
   //     deselected.setStyle(null);
   // }
 
-  var z = selected.get('spd_50_year')
+  var z = selected.get('hsr')
 
   var coordinate = evt.mapBrowserEvent.coordinate;
   var element = popup.getElement();
@@ -128,7 +129,7 @@ selectClick.on('select', function(evt) {
     'animation': false,
     'html': true,
     'trigger': 'focus',
-    'content': '<p>Z: <code>'  + z +   '</code></p>'
+    'content': '<p>H ср.: <code>'  + z +   '</code> м</p>'
   });
 
   $(element).popover('show');
