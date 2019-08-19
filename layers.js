@@ -7,6 +7,7 @@ import OSM from 'ol/source/OSM';
 import MVT from 'ol/format/MVT.js';
 import {Fill, Stroke, Icon, Style, Text, Circle} from 'ol/style';
 import TileGrid from 'ol/tilegrid/TileGrid';
+import TileWMS from 'ol/source/TileWMS.js';
 
 var styles  = require('./styles.js');
 var fun = require('./functions.js');
@@ -470,8 +471,15 @@ var city_lyr = new VectorLayer({
   declutter: true
 });
 
-var voronoy_lyr = new VectorLayer({
-  source: vector_source(host, 'wavenergy:all_voronoy')
+var voronoy_src = new TileWMS({
+  url: 'http://localhost:8080/geoserver/ows?SERVICE=WMS',
+  params: {'LAYERS': 'wavenergy:all_voronoy', 'TILED': true},
+  serverType: 'geoserver',
+  crossOrigin: 'anonymous'
+});
+
+var voronoy_lyr = new TileLayer({
+  source: voronoy_src
 });
 
 module.exports = {

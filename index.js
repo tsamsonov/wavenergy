@@ -16,6 +16,7 @@ import {get as getProjection} from 'ol/proj';
 import {transform, Projection} from 'ol/proj.js';
 import {fromLonLat, transformExtent} from 'ol/proj.js';
 import WMTS from 'ol/tilegrid/WMTS.js';
+import TileWMS from 'ol/source/TileWMS.js';
 import Control from 'ol/control/Control';
 import Plotly from 'plotly';
 import Graticule from 'ol/Graticule.js';
@@ -56,7 +57,6 @@ const map = new Map({
     //   source: new OSM(),
     // }),
     // mbx,
-    layers.voronoy_lyr,
     layers.world_lyr,
     layers.hs_lyr_group,
     layers.land_lyr,
@@ -69,7 +69,7 @@ const map = new Map({
     center: center,
     // center: transform([40, 60], 'EPSG:4326', 'ESRI:54003'),
     // extent: transformExtent([-180, -90, 180, 90], 'EPSG:4326', 'ESRI:54003'),
-    zoom: 3,
+    zoom: 5,
     maxZoom: 10
   })
 });
@@ -95,12 +95,110 @@ var selectClick = new Select({
 });
 
 map.addOverlay(popup);
-map.addInteraction(selectClick);
+// map.addInteraction(selectClick);
 
 // map.on('click', function(e) {
 //   var element = popup.getElement();
 //   $(element).popover('dispose');
 // });
+
+map.on('click', function(evt) {
+  var viewResolution = map.getView().getResolution();
+    var url = layers.voronoy_lyr.getSource().getGetFeatureInfoUrl(
+      evt.coordinate, viewResolution, 'EPSG:4326',
+      {'INFO_FORMAT': 'application/json'});
+    if (url) {
+      var parser = new GeoJSON();
+      $.ajax({
+        url: url,
+        type: "POST"
+      }).then(function(response) {
+        var result = parser.readFeatures(response);
+        // if (result.length) {
+        //   var info = [];
+        //   for (var i = 0, ii = result.length; i < ii; ++i) {
+        //     info.push(result[i].get('formal_en'));
+        //   }
+        //   container.innerHTML = info.join(', ');
+        // } else {
+        //   container.innerHTML = '&nbsp;';
+        // }
+
+        var tbl = `<p><table id="dt">
+                      <tr>
+                        <th><br>Море</th>
+                        <th>${result[0].get('formal_en')}</th>
+                      </tr>
+                      <tr>
+                        <td>Широта, °</td>
+                        <td>${result[0].get('lat')}</td>
+                      </tr>
+                      <tr>
+                        <td>Долгота, °</td>
+                        <td>${result[0].get('lon')}</td>
+                      </tr>
+                      <tr>
+                        <td colspan="2">Средние значения<br></td>
+                      </tr>
+                      <tr>
+                        <td>Высота, [м]</td>
+                        <td>${result[0].get('hsr')}</td>
+                      </tr>
+                      <tr>
+                        <td>Длина, [м]</td>
+                        <td>${result[0].get('lsr')}</td>
+                      </tr>
+                      <tr>
+                        <td>Период, [с]</td>
+                        <td>${result[0].get('psr')}</td>
+                      </tr>
+                      <tr>
+                        <td>Энергия, [кВт/м]</td>
+                        <td>${result[0].get('esr')}</td>
+                      </tr>
+                      <tr>
+                        <td colspan="2">Экстремальные значения</td>
+                      </tr>
+                      <tr>
+                        <td>Макс. высота, [м.]</td>
+                        <td>${result[0].get('hs')}</td>
+                      </tr>
+                      <tr>
+                        <td>Макс. высота (3%), [м]</td>
+                        <td>${result[0].get('h3p')}</td>
+                      </tr>
+                    </table></p>`
+
+        var element = popup.getElement();
+        $(element).popover('dispose');
+        popup.setPosition(evt.coordinate);
+
+        $(element).popover({
+          placement: 'top',
+          animation: false,
+          html: true,
+          content: `<p>Море: <code>${result[0].get('sea')}</code></p>
+                    <p>Широта, °: <code>${result[0].get('lat')}</code></p>
+                    <p>Долгота, °: <code>${result[0].get('lon')}</code></p>
+                    <p>Высота, [м]: <code>${result[0].get('hsr')}</code></p>
+                    <p>Длина, [м]: <code>${result[0].get('lsr')}</code></p>
+                    <p>Период, [с]: <code>${result[0].get('psr')}</code></p>
+                    <p>Энергия, [кВт/м]: <code>${result[0].get('esr')}</code></p>
+                    <p>Макс. высота, [м.]: <code>${result[0].get('hs')}</code></p>
+                    <p>Макс. высота (3%), [м]: <code>${result[0].get('h3p')}</code></p>`
+        });
+
+        // $('#dt').innerHTML = tbl;
+        // $('#dt').bootstrapTable();
+        // var content = document.getElementById('popup-content');
+        //
+        // content.innerHTML = tbl;
+        $(element).popover('show');
+
+        // console.log(result[0].get('lon'));
+      });
+    }
+});
 
 selectClick.on('select', function(evt) {
   // document.getElementById('nodelist').innerHTML = "Loading... please wait...";
@@ -133,8 +231,7 @@ selectClick.on('select', function(evt) {
   });
 
   $(element).popover('show');
-
-    // document.getElementById('popup').innerHTML = '<iframe seamless src="' + url + '"></iframe>';
+  // document.getElementById('popup').innerHTML = '<iframe seamless src="' + url + '"></iframe>';
 });
 // new Graticule({
 //   map: map
