@@ -5,7 +5,7 @@ import {Tile as TileLayer, Vector as VectorLayer, VectorTile as VectorTileLayer,
 import VectorSource from 'ol/source/Vector.js';
 import VectorTileSource from 'ol/source/VectorTile.js';
 import GeoJSON from 'ol/format/GeoJSON';
-import TileJSON from 'ol/source/TileJSON.js';
+import TileJSON from 'ol/source/TileJSON';
 import OSM from 'ol/source/OSM';
 import MVT from 'ol/format/MVT.js';
 import {Fill, Stroke, Icon, Style, Text, Circle} from 'ol/style';
